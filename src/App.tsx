@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 
 type Bank = "fat" | "love" | "dream";
 type Choice = "YES" | "NO";
@@ -21,12 +22,62 @@ const ranks = {
   dream: ["我会创业成功吗？ 1.65", "AI 会取代人类工作吗？ 1.78", "我会找到理想的另一半吗？ 2.20", "我能考上理想的博士吗？ 1.92", "元宇宙会改变世界吗？ 2.35"],
 };
 
-function PredictButton({ label, bank }: { label: string; bank: Bank }) {
-  const [chosen, setChosen] = useState(false);
+function FeedbackButton({
+  children,
+  doneText = "已确认",
+  className = "",
+}: {
+  children: ReactNode;
+  doneText?: string;
+  className?: string;
+}) {
+  const [done, setDone] = useState(false);
   return (
-    <button className={`predict ${bank} ${chosen ? "chosen" : ""}`} onClick={(event) => { event.stopPropagation(); setChosen(true); }}>
-      {chosen ? "已参与预测" : label}
+    <button
+      className={`${className} ${done ? "done" : ""}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        setDone(true);
+      }}
+    >
+      {done ? doneText : children}
     </button>
+  );
+}
+
+function PredictButton({
+  label,
+  bank,
+  choice,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  bank: Bank;
+  choice: Choice;
+  selected: boolean;
+  onSelect: (choice: Choice) => void;
+}) {
+  return (
+    <button
+      className={`predict ${bank} ${selected ? "chosen" : ""}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(choice);
+      }}
+    >
+      {selected ? "已参与预测" : label}
+    </button>
+  );
+}
+
+function PredictPair({ bank, yes, no }: { bank: Bank; yes: string; no: string }) {
+  const [choice, setChoice] = useState<Choice | null>(null);
+  return (
+    <div className="odds">
+      <PredictButton bank={bank} choice="YES" label={`YES ${yes}`} selected={choice === "YES"} onSelect={setChoice} />
+      <PredictButton bank={bank} choice="NO" label={`NO ${no}`} selected={choice === "NO"} onSelect={setChoice} />
+    </div>
   );
 }
 
@@ -39,8 +90,8 @@ function Modal({ bank, onClose }: { bank: Bank | null; onClose: () => void }) {
   }[bank];
 
   return (
-    <div className="modal">
-      <div className="modalBox">
+    <div className="modal" onClick={onClose}>
+      <div className="modalBox" onClick={(event) => event.stopPropagation()}>
         <button className="close" onClick={onClose}>X</button>
         <p className="eyebrow">NEW MARKET</p>
         <h2>{text[0]}</h2>
@@ -103,14 +154,14 @@ function FatBank({ open }: { open: () => void }) {
       </div>
       <div className="actions">
         <button onClick={(e) => { e.stopPropagation(); open(); }}><b>我要借脂肪</b><small>今晚想吃，但不想承担全部罪恶感</small></button>
-        <button><b>我要存脂肪</b><small>今天很自律，可以出售燃烧能力</small></button>
-        <button><b>我要下注</b><small>预测谁会暴食，谁会自律</small></button>
+        <button onClick={(e) => { e.stopPropagation(); open(); }}><b>我要存脂肪</b><small>今天很自律，可以出售燃烧能力</small></button>
+        <button onClick={(e) => { e.stopPropagation(); open(); }}><b>我要下注</b><small>预测谁会暴食，谁会自律</small></button>
       </div>
       <h3 className="sectionTitle">正在交易的脂肪</h3>
       <div className="orders">
-        <article><b>小王</b><em>EATING MODE</em><p>借入：8 FAT<br />利率：10%</p><button>接单</button></article>
-        <article><b>小李</b><em>RUNNING</em><p>出售：5 FAT<br />价格：80 COIN</p><button>购买</button></article>
-        <article><b>小张</b><em>MILK TEA ADDICT</em><p>今晚还喝吗？</p><PredictButton bank="fat" label="YES 1.8" /><PredictButton bank="fat" label="NO 2.4" /></article>
+        <article><b>小王</b><em>EATING MODE</em><p>借入：8 FAT<br />利率：10%</p><FeedbackButton doneText="已接单">接单</FeedbackButton></article>
+        <article><b>小李</b><em>RUNNING</em><p>出售：5 FAT<br />价格：80 COIN</p><FeedbackButton doneText="已购买">购买</FeedbackButton></article>
+        <article><b>小张</b><em>MILK TEA ADDICT</em><p>今晚还喝吗？</p><PredictPair bank="fat" yes="1.8" no="2.4" /></article>
       </div>
       <div className="flow"><span>暴食者池</span><b>→</b><span>脂肪交易所</span><b>→</b><span>燃烧者池</span></div>
       <div className="stats"><span>+128 FAT<br />已转移</span><span>+42 FAT<br />已燃烧</span><span>19 FAT<br />无人接盘</span></div>
@@ -129,12 +180,19 @@ function SocialBank({ bank, open }: { bank: "love" | "dream"; open: () => void }
       <div className="socialGrid">
         <aside className="rail"><span>⌂</span><span>⌕</span><span>♧</span><span>✉</span><button onClick={(e) => { e.stopPropagation(); open(); }}>✎</button></aside>
         <main>
-          <div className="account"><b>{isLove ? "LOVE BANK" : "DREAM BANK"} 官方认证 ✓</b><span>@{isLove ? "LoveBankOfficial" : "DreamBankOfficial"}</span><em>资产：{isLove ? "520 LOVE" : "780 DREAM"} · COIN：{isLove ? "120" : "1,230"}</em></div>
+          <div className="account">
+            <b>{isLove ? "LOVE BANK" : "DREAM BANK"} 官方认证 ✓</b>
+            <span>@{isLove ? "LoveBankOfficial" : "DreamBankOfficial"}</span>
+            <em>资产：{isLove ? "520 LOVE" : "780 DREAM"} · COIN：{isLove ? "120" : "1,230"}</em>
+            <button className="socialPublish" onClick={(event) => { event.stopPropagation(); open(); }}>
+              {isLove ? "发布心动" : "发布梦想"}
+            </button>
+          </div>
           <nav><b>推荐</b><span>正在交易</span><span>关注</span><span>热门</span></nav>
           {posts[bank].map((post) => (
             <article className="post" key={post[1]}>
               <div className="avatar">{isLove ? "🧑" : "👨‍💻"}</div>
-              <div><b>{post[0]} <small>{post[1]} · 2h</small></b><p><mark>{post[2]}</mark>{post[3]}</p><div className="odds"><PredictButton bank={bank} label={`YES ${post[4]}`} /><PredictButton bank={bank} label={`NO ${post[5]}`} /></div><small>{post[6]}</small></div>
+              <div className="postBody"><b>{post[0]} <small>{post[1]} · 2h</small></b><p><mark>{post[2]}</mark>{post[3]}</p><PredictPair bank={bank} yes={post[4]} no={post[5]} /><small>{post[6]}</small></div>
             </article>
           ))}
         </main>
@@ -165,7 +223,7 @@ export default function App() {
       </main>
       <footer>
         <div><h2>欢迎来到人类交易所</h2><p>我们不交易商品。我们交易身体、关系和未来。用市场机制，把人生的不确定性变成可看见、可参与、可讨论的系统。</p><span>身体：自律与放纵</span><span>关系：情绪与不确定</span><span>未来：梦想与风险</span></div>
-        <div><h2>TRADE WHAT MATTERS.</h2><p><b className="miniBlob" /> + ♥ + ☁</p><button>进入交易所</button><button>查看路演故事</button></div>
+        <div><h2>TRADE WHAT MATTERS.</h2><p><b className="miniBlob" /> + ♥ + ☁</p><FeedbackButton doneText="已进入交易所">进入交易所</FeedbackButton><FeedbackButton doneText="故事已打开">查看路演故事</FeedbackButton></div>
       </footer>
       <Modal bank={modal} onClose={() => setModal(null)} />
     </>
